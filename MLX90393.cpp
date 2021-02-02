@@ -36,23 +36,28 @@ MLX90393()
 
 uint8_t
 MLX90393::
-begin(uint8_t A1, uint8_t A0, int DRDY_pin, TwoWire &wirePort)
+begin(uint8_t I2C_ADDR, int DRDY_pin, TwoWire &wirePort)
 {
-  I2C_address = I2C_BASE_ADDR | (A1?2:0) | (A0?1:0);
+  //I2C_address = I2C_BASE_ADDR | (A1?2:0) | (A0?1:0);
+  I2C_address = MLX90393::I2C_BASE_ADDR;
   this->DRDY_pin = DRDY_pin;
   if (DRDY_pin >= 0){
     pinMode(DRDY_pin, INPUT);
   }
 
   _i2cPort = &wirePort; //Grab which port the user wants us to use
-
+  delay(2);
   uint8_t status1 = checkStatus(reset());
-  uint8_t status2 = setGainSel(7);
-  uint8_t status3 = setResolution(0, 0, 0);
-  uint8_t status4 = setOverSampling(3);
-  uint8_t status5 = setDigitalFiltering(7);
-  uint8_t status6 = setTemperatureCompensation(0);
 
+  setHallConf(0x0C);
+
+  uint8_t status2 = setGainSel(6);
+  uint8_t status3 = setResolution(0,0,0);
+  uint8_t status4 = setOverSampling(0);
+  uint8_t status5 = setDigitalFiltering(2); //0,5,6,7 OK //1,2,3,4 NOT OK
+  uint8_t status6 = setTemperatureCompensation(0);
+  
+  //dig filt =4,3,2 OK after adding 3*67us to the timin
   return status1 | status2 | status3 | status4 | status5 | status6;
 }
 
@@ -338,9 +343,9 @@ convertRaw(MLX90393::txyzRaw raw)
   float gain_factor = gain_multipliers[gain_sel & 0x7];
 
   if (tcmp_en){
-    data.x = ( (raw.x - 32768.f) * xy_sens *
-               gain_factor * (1 << res_x) );
-  } else {
+    data.x = ( (raw.x - 32768.f) * xy_sens * gain_factor * (1 << res_x) );
+  } 
+  else {
     switch(res_x){
     case 0:
     case 1:
@@ -408,12 +413,19 @@ convDelayMillis() {
   const uint8_t osr2 = (cache.reg[OSR2_REG] & OSR2_MASK) >> OSR2_SHIFT;
   const uint8_t dig_flt = (cache.reg[DIG_FLT_REG] & DIG_FLT_MASK) >> DIG_FLT_SHIFT;
 
-  return
-    (DRDY_pin >= 0)? 0 /* no delay if drdy pin present */ :
-                     // estimate conversion time from datasheet equations
-                     ( 3 * (2 + (1 << dig_flt)) * (1 << osr) *0.064f +
-                      (1 << osr2) * 0.192f ) *
-                       1.3f;  // 30% tolerance
+  if((DRDY_pin >= 0)){
+    return 0;
+  }
+  else{
+    //return 0.264+0.432+( 3 * (0.067f+(2 + (1 << dig_flt)) * (1 << osr) *0.064f) + (1 << osr2) * 0.192f )+(0.067+0.192*(1<<osr2))+0.120+0.100;
+    return 1.54;
+  }
+  //return
+    // (DRDY_pin >= 0)? 0 /* no delay if drdy pin present */ :
+    //                  // estimate conversion time from datasheet equations
+    //                  ( 3 * ((2 + (1 << dig_flt)) * (1 << osr) *0.064f) +
+    //                   (1 << osr2) * 0.192f ) *
+    //                    1.3f;  // 30% tolerance
 }
 
 uint8_t
@@ -433,10 +445,44 @@ readData(MLX90393::txyz& data)
   }
 
   txyzRaw raw_txyz;
-  uint8_t status2 =
-    readMeasurement(X_FLAG | Y_FLAG | Z_FLAG | T_FLAG, raw_txyz);
+  uint8_t status2 = readMeasurement(X_FLAG | Y_FLAG | Z_FLAG | T_FLAG, raw_txyz);
   data = convertRaw(raw_txyz);
   return checkStatus(status1) | checkStatus(status2);
+}
+
+//edit by tess
+uint8_t
+MLX90393::
+readBurstData(MLX90393::txyz& data)
+{
+  //uint8_t status1 = STATUS_OK; //startMeasurement(X_FLAG | Y_FLAG | Z_FLAG | T_FLAG);
+  //delay(this->convDelayMillis());
+
+  txyzRaw raw_txyz;
+  uint8_t status2 = readMeasurement(X_FLAG | Y_FLAG | Z_FLAG | T_FLAG, raw_txyz);
+  data = convertRaw(raw_txyz);
+  return checkStatus(status2);
+}
+
+uint8_t MLX90393::
+setBurstDataRate(uint8_t burst_data_rate)
+{
+  uint16_t old_val;
+  uint8_t status1 = readRegister(BURST_DATA_RATE_REG, old_val);
+  uint8_t status2 = writeRegister(BURST_DATA_RATE_REG,
+                                  (old_val & ~BURST_DATA_RATE_MASK) |
+                                  ((uint16_t(burst_data_rate) << BURST_DATA_RATE_SHIFT) &
+                                   BURST_DATA_RATE_MASK));
+  return checkStatus(status1) | checkStatus(status2);
+}
+
+uint8_t MLX90393::
+getBurstDataRate(uint8_t& burst_data_rate)
+{
+  uint16_t reg_val;
+  uint8_t status = readRegister(BURST_DATA_RATE_REG, reg_val);
+  burst_data_rate = (reg_val & BURST_DATA_RATE_MASK) >> BURST_DATA_RATE_SHIFT;
+  return checkStatus(status);
 }
 
 uint8_t

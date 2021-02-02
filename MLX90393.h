@@ -11,16 +11,17 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-
+//enum { DIG_FLT_REG = 0x2, DIG_FLT_MASK = 0x001c, DIG_FLT_SHIFT = 2 };
 class MLX90393
 {
 public:
   enum { STATUS_OK = 0, STATUS_ERROR = 0xff } return_status_t;
   enum { Z_FLAG = 0x8, Y_FLAG = 0x4, X_FLAG = 0x2, T_FLAG = 0x1 } axis_flag_t;
-  enum { I2C_BASE_ADDR = 0x0c };
+  enum { I2C_BASE_ADDR = 0x0C }; //0x0C
   enum { GAIN_SEL_REG = 0x0, GAIN_SEL_MASK = 0x0070, GAIN_SEL_SHIFT = 4 };
   enum { HALLCONF_REG = 0x0, HALLCONF_MASK = 0x000f, HALLCONF_SHIFT = 0 };
   enum { BURST_SEL_REG = 0x1, BURST_SEL_MASK = 0x03c0, BURST_SEL_SHIFT = 6};
+  enum { BURST_DATA_RATE_REG=0x1, BURST_DATA_RATE_MASK = 0x003f, BURST_DATA_RATE_SHIFT = 0}; //edit by tess
   enum { TRIG_INT_SEL_REG = 0x1, TRIG_INT_SEL_MASK = 0x8000, TRIG_INT_SEL_SHIFT = 15 };
   enum { EXT_TRIG_REG = 0x1, EXT_TRIG_MASK = 0x0800, EXT_TRIG_SHIFT = 11 };
   enum { OSR_REG = 0x2, OSR_MASK = 0x0003, OSR_SHIFT = 0 };
@@ -84,10 +85,17 @@ public:
   uint16_t convDelayMillis();
 
   // higher-level API
-  uint8_t begin(uint8_t A1 = 0, uint8_t A0 = 0, int DRDY_pin = -1, TwoWire &wirePort = Wire);
+  uint8_t begin(uint8_t I2C_ADDR=0x0C, int DRDY_pin= -1, TwoWire &wirePort = Wire);
 
   // returns B (x,y,z) in uT, temperature in C
   uint8_t readData(txyz& data);
+
+  //***2021-1-28 Tess edit
+  uint8_t readBurstData(txyz& data);
+  uint8_t setBurstDataRate(uint8_t burst_data_rate);
+  uint8_t getBurstDataRate(uint8_t& burst_data_rate);
+
+
   uint8_t setGainSel(uint8_t gain_sel);
   uint8_t getGainSel(uint8_t& gain_sel);
   uint8_t setHallConf(uint8_t hallconf);
@@ -118,8 +126,9 @@ private:
   int DRDY_pin;
 
   // parameters are cached to avoid reading them from sensor unnecessarily
+  //enum { SIZE = 3, ALL_DIRTY_MASK = 1 << (SIZE + 1) - 1};
   struct cache_t {
-    enum { SIZE = 3, ALL_DIRTY_MASK = 1 << (SIZE + 1) - 1};
+    enum { SIZE = 3, ALL_DIRTY_MASK = (1 << SIZE) - 1};
     uint8_t dirty;
     uint16_t reg[SIZE];
   } cache;
