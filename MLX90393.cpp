@@ -32,6 +32,13 @@ MLX90393()
   // for hallconf = 0xc
   base_xy_sens_hc0xc = 0.150f;
   base_z_sens_hc0xc = 0.242f;
+
+  //time required to complete conversion, from Table 18 in datasheet
+  // conversion_times[8][4] = {{1.27,1.84,3.00,5.30},           {1.46, 2.23, 3.76, 6.84}, 
+  //                           {1.84, 3.00, 5.30, 9.91},        {2.61, 4.53, 8.37, 16.05}, 
+  //                           {4.15,7.60, 14.52,28.34},        {7.22, 13.75, 26.8, 52.92}, 
+  //                           {13.36, 26.04, 51.38, 102.07},   {25.65, 50.61, 100.53, 200.37}
+  //                           };
 }
 
 uint8_t
@@ -39,7 +46,7 @@ MLX90393::
 begin(uint8_t I2C_ADDR, int DRDY_pin, TwoWire &wirePort)
 {
   //I2C_address = I2C_BASE_ADDR | (A1?2:0) | (A0?1:0);
-  I2C_address = MLX90393::I2C_BASE_ADDR;
+  I2C_address = I2C_ADDR ;
   this->DRDY_pin = DRDY_pin;
   if (DRDY_pin >= 0){
     pinMode(DRDY_pin, INPUT);
@@ -418,7 +425,9 @@ convDelayMillis() {
   }
   else{
     //return 0.264+0.432+( 3 * (0.067f+(2 + (1 << dig_flt)) * (1 << osr) *0.064f) + (1 << osr2) * 0.192f )+(0.067+0.192*(1<<osr2))+0.120+0.100;
-    return 1.54;
+    //return 1.54;
+    
+    return conversion_times[dig_flt][osr];//1.54;
   }
   //return
     // (DRDY_pin >= 0)? 0 /* no delay if drdy pin present */ :
