@@ -46,7 +46,7 @@ MLX90393::
 begin(uint8_t I2C_ADDR, int DRDY_pin, TwoWire &wirePort)
 {
   //I2C_address = I2C_BASE_ADDR | (A1?2:0) | (A0?1:0);
-  I2C_address = I2C_ADDR ;
+  I2C_address = I2C_ADDR;
   this->DRDY_pin = DRDY_pin;
   if (DRDY_pin >= 0){
     pinMode(DRDY_pin, INPUT);
@@ -58,7 +58,7 @@ begin(uint8_t I2C_ADDR, int DRDY_pin, TwoWire &wirePort)
 
   setHallConf(0x0C);
 
-  uint8_t status2 = setGainSel(6);
+  uint8_t status2 = setGainSel(7);
   uint8_t status3 = setResolution(0,0,0);
   uint8_t status4 = setOverSampling(0);
   uint8_t status5 = setDigitalFiltering(2); //0,5,6,7 OK //1,2,3,4 NOT OK
@@ -425,9 +425,9 @@ convDelayMillis() {
   }
   else{
     //return 0.264+0.432+( 3 * (0.067f+(2 + (1 << dig_flt)) * (1 << osr) *0.064f) + (1 << osr2) * 0.192f )+(0.067+0.192*(1<<osr2))+0.120+0.100;
-    //return 1.54;
+    return 2;
     
-    return conversion_times[dig_flt][osr];//1.54;
+    //return conversion_times[dig_flt][osr];
   }
   //return
     // (DRDY_pin >= 0)? 0 /* no delay if drdy pin present */ :
