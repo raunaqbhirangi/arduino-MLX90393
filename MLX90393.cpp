@@ -160,7 +160,8 @@ startBurst(uint8_t zyxt_flags)
 {
   cache_fill();
   uint8_t cmd = CMD_START_BURST | (zyxt_flags & 0xf);
-  return sendCommand(cmd);
+  uint8_t status2 = sendCommand(cmd); 
+  return (status2);
 }
 
 uint8_t
@@ -294,6 +295,8 @@ MLX90393::
 reset()
 {
   cache_invalidate();
+  //datasheet recommends EX command before warm reset (15.3.1.2)
+  uint8_t status1 = sendCommand(CMD_EXIT);
 
   uint8_t status = sendCommand(CMD_RESET);
   //Device now resets. We must give it time to complete
@@ -459,7 +462,6 @@ readData(MLX90393::txyz& data)
   return checkStatus(status1) | checkStatus(status2);
 }
 
-//edit by tess
 uint8_t
 MLX90393::
 readBurstData(MLX90393::txyz& data)
@@ -470,6 +472,15 @@ readBurstData(MLX90393::txyz& data)
   txyzRaw raw_txyz;
   uint8_t status2 = readMeasurement(X_FLAG | Y_FLAG | Z_FLAG | T_FLAG, raw_txyz);
   data = convertRaw(raw_txyz);
+  return checkStatus(status2);
+}
+
+uint8_t 
+MLX90393::readRawBurstData(MLX90393::txyzRaw& data)
+{
+  txyzRaw raw_txyz;
+  uint8_t status2 = readMeasurement(X_FLAG | Y_FLAG | Z_FLAG | T_FLAG, raw_txyz);
+  data = raw_txyz;
   return checkStatus(status2);
 }
 

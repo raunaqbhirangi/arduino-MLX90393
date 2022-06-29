@@ -92,6 +92,7 @@ public:
 
   //***2021-1-28 Tess edit
   uint8_t readBurstData(txyz& data);
+  uint8_t readRawBurstData(txyzRaw& data);
   uint8_t setBurstDataRate(uint8_t burst_data_rate);
   uint8_t getBurstDataRate(uint8_t& burst_data_rate);
 
