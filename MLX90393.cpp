@@ -43,7 +43,7 @@ MLX90393()
 
 uint8_t
 MLX90393::
-begin(uint8_t I2C_ADDR, int DRDY_pin, TwoWire &wirePort)
+begin(uint8_t I2C_ADDR, int DRDY_pin, TwoWire &wirePort, uint8_t gain, uint8_t digFilt)
 {
   //I2C_address = I2C_BASE_ADDR | (A1?2:0) | (A0?1:0);
   I2C_address = I2C_ADDR;
@@ -58,10 +58,10 @@ begin(uint8_t I2C_ADDR, int DRDY_pin, TwoWire &wirePort)
 
   setHallConf(0x0C);
 
-  uint8_t status2 = setGainSel(7);
+  uint8_t status2 = setGainSel(gain);
   uint8_t status3 = setResolution(0,0,0);
   uint8_t status4 = setOverSampling(0);
-  uint8_t status5 = setDigitalFiltering(2); //0,5,6,7 OK //1,2,3,4 NOT OK
+  uint8_t status5 = setDigitalFiltering(digFilt);
   uint8_t status6 = setTemperatureCompensation(0);
   
   //dig filt =4,3,2 OK after adding 3*67us to the timin

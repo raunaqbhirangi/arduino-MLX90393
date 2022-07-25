@@ -85,7 +85,7 @@ public:
   uint16_t convDelayMillis();
 
   // higher-level API
-  uint8_t begin(uint8_t I2C_ADDR=0x0C, int DRDY_pin= -1, TwoWire &wirePort = Wire);
+  uint8_t begin(uint8_t I2C_ADDR=0x0C, int DRDY_pin= -1, TwoWire &wirePort = Wire, uint8_t gain=7, uint8_t digFilt=2);
 
   // returns B (x,y,z) in uT, temperature in C
   uint8_t readData(txyz& data);
